@@ -22,25 +22,40 @@ namespace RtfRedactor
 
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if(openFileDialog1.ShowDialog() == DialogResult.OK)
+            if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK &&
+                 openFileDialog1.FileName.Length > 0)
             {
                 try
                 {
-                    richTextBox1.LoadFile(openFileDialog1.FileName, RichTextBoxStreamType.RichText);
+                    MessageBox.Show(openFileDialog1.FileName.EndsWith(".rtf").ToString());
+                    if (openFileDialog1.FileName.EndsWith(".rtf"))
+                    {
+                        richTextBox1.LoadFile(openFileDialog1.FileName);
+                        this.Text = openFileDialog1.FileName;
+                    }
+                    else
+                    {
+                        MessageBox.Show("this not rtf file");
+                    }
                 }
-                    
-                catch(System.ArgumentException ex)
+                catch(IOException)
                 {
-                    richTextBox1.LoadFile(openFileDialog1.FileName, RichTextBoxStreamType.PlainText);
+                    MessageBox.Show("111");
                 }
-                this.Text = openFileDialog1.FileName;
+                catch(ArgumentException)
+                {
+                    MessageBox.Show("22");
+                }
+                
             }
         }
 
         private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if(saveFileDialog1.ShowDialog() == DialogResult.OK)
+            if (saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK &&
+      saveFileDialog1.FileName.Length > 0)
             {
+                // Save the contents of the RichTextBox into the file.
                 richTextBox1.SaveFile(saveFileDialog1.FileName);
                 this.Text = saveFileDialog1.FileName;
             }
@@ -48,31 +63,32 @@ namespace RtfRedactor
 
         private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            
-
-            if (richTextBox1.Modified)
+            if (richTextBox1.Modified && this.Text.EndsWith(".rtf"))
             {
-                DialogResult res = MessageBox.Show("Сохранить изменения?","Файл был изменен",MessageBoxButtons.YesNoCancel);
-                if(res == DialogResult.Yes)
+                DialogResult res = MessageBox.Show("Сохранить изменения?", "Файл был изменен", MessageBoxButtons.YesNoCancel);
+                if (res == DialogResult.Yes)
                 {
-
+                    SaveToolStripMenuItem_Click(this,e);
+                    Application.Exit();
                 }
                 else if(res == DialogResult.No)
                 {
-                    this.Close();
+                    Application.Exit();
                 }
                 else if(res == DialogResult.Cancel)
                 {
-
+                    
                 }
-
+                
             }
             else
             {
-                MessageBox.Show("Not lox");
-                this.Close();
+                Application.Exit();
             }
+
+
             
+
         }
 
         private void UndoToolStripMenuItem_Click(object sender, EventArgs e)
@@ -232,40 +248,26 @@ namespace RtfRedactor
 
         private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (this.Text == "Form1")
+            if (richTextBox1.Modified && this.Text.EndsWith(".rtf"))
             {
-                SaveAsToolStripMenuItem_Click(this,e);  
+                MessageBox.Show(this.Text);
+                richTextBox1.SaveFile(this.Text);
             }
-            else
-            {
-                using (FileStream fstream = new FileStream($"{this.Text}", FileMode.OpenOrCreate))
-                {
-                    
-                    byte[] array = System.Text.Encoding.Default.GetBytes(richTextBox1.Text);
-                    
-                    fstream.Write(array, 0, array.Length);
-                   
-                }
-            }
+ 
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            
             if (e.CloseReason == CloseReason.UserClosing)
             {
-                if (richTextBox1.Modified & this.Text !="Form1")
+                if (richTextBox1.Modified && this.Text.EndsWith(".rtf"))
                 {
                     DialogResult res = MessageBox.Show("Сохранить изменения?", "Файл был изменен", MessageBoxButtons.YesNoCancel);
                     if (res == DialogResult.Yes)
                     {
-                        using (FileStream fstream = new FileStream($"{this.Text}", FileMode.OpenOrCreate))
-                        {
-
-                            byte[] array = System.Text.Encoding.Default.GetBytes(richTextBox1.Text);
-
-                            fstream.Write(array, 0, array.Length);
-
-                        }
+                        SaveToolStripMenuItem_Click(this, e);
+                        Application.Exit();
                     }
                     else if (res == DialogResult.No)
                     {
@@ -273,7 +275,7 @@ namespace RtfRedactor
                     }
                     else if (res == DialogResult.Cancel)
                     {
-
+                        e.Cancel = true;
                     }
 
                 }
@@ -287,8 +289,9 @@ namespace RtfRedactor
 
         private void NewToolStripMenuItem_Click_1(object sender, EventArgs e)
         {
-            SaveAsToolStripMenuItem_Click(this, e);
             richTextBox1.Clear();
+            this.Text = "Form1";
+ 
         }
     }
 }
