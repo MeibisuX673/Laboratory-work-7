@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,14 +18,11 @@ namespace RtfRedactor
             InitializeComponent();
         }
 
-        private void NewToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            this.richTextBox1.Clear();
-        }
+       
 
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if(openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if(openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
@@ -41,7 +39,7 @@ namespace RtfRedactor
 
         private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if(saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if(saveFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 richTextBox1.SaveFile(saveFileDialog1.FileName);
                 this.Text = saveFileDialog1.FileName;
@@ -50,7 +48,31 @@ namespace RtfRedactor
 
         private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.Close();
+            
+
+            if (richTextBox1.Modified)
+            {
+                DialogResult res = MessageBox.Show("Сохранить изменения?","Файл был изменен",MessageBoxButtons.YesNoCancel);
+                if(res == DialogResult.Yes)
+                {
+
+                }
+                else if(res == DialogResult.No)
+                {
+                    this.Close();
+                }
+                else if(res == DialogResult.Cancel)
+                {
+
+                }
+
+            }
+            else
+            {
+                MessageBox.Show("Not lox");
+                this.Close();
+            }
+            
         }
 
         private void UndoToolStripMenuItem_Click(object sender, EventArgs e)
@@ -206,6 +228,67 @@ namespace RtfRedactor
 
 
             }
+        }
+
+        private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.Text == "Form1")
+            {
+                SaveAsToolStripMenuItem_Click(this,e);  
+            }
+            else
+            {
+                using (FileStream fstream = new FileStream($"{this.Text}", FileMode.OpenOrCreate))
+                {
+                    
+                    byte[] array = System.Text.Encoding.Default.GetBytes(richTextBox1.Text);
+                    
+                    fstream.Write(array, 0, array.Length);
+                   
+                }
+            }
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                if (richTextBox1.Modified & this.Text !="Form1")
+                {
+                    DialogResult res = MessageBox.Show("Сохранить изменения?", "Файл был изменен", MessageBoxButtons.YesNoCancel);
+                    if (res == DialogResult.Yes)
+                    {
+                        using (FileStream fstream = new FileStream($"{this.Text}", FileMode.OpenOrCreate))
+                        {
+
+                            byte[] array = System.Text.Encoding.Default.GetBytes(richTextBox1.Text);
+
+                            fstream.Write(array, 0, array.Length);
+
+                        }
+                    }
+                    else if (res == DialogResult.No)
+                    {
+                        Application.Exit();
+                    }
+                    else if (res == DialogResult.Cancel)
+                    {
+
+                    }
+
+                }
+                else
+                {
+                    Application.Exit();
+                }
+            }
+
+        }
+
+        private void NewToolStripMenuItem_Click_1(object sender, EventArgs e)
+        {
+            SaveAsToolStripMenuItem_Click(this, e);
+            richTextBox1.Clear();
         }
     }
 }
