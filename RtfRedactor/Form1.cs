@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,92 +14,81 @@ namespace RtfRedactor
 {
     public partial class MainForm : Form
     {
+        string filePath = "";
+        bool needsSaving = false;
+        bool ehereWasConservation = false;
+        int characters = 0;
         public MainForm()
         {
             InitializeComponent();
+            saveFileDialog1.FileOk += (s,e)=>  Save(saveFileDialog1.FileName);
+            selectAllToolStripMenuItem.Click += (s, e) => richTextBox1.SelectAll();
+            
         }
 
-       
+        
+
+        private void Save(string fileName)
+        {
+            if(Path.GetExtension(filePath)== ".rtf")
+            {
+                richTextBox1.SaveFile(fileName);
+                filePath = fileName;
+                needsSaving = false;
+                ehereWasConservation = true;
+            }
+            else
+            {
+                MessageBox.Show("this not rtf type");
+            }
+            
+        }
+
+        
 
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK &&
                  openFileDialog1.FileName.Length > 0)
             {
-                try
+                filePath = openFileDialog1.FileName;
+                richTextBox1.Clear();
+                if(Path.GetExtension(filePath) == ".rtf")
                 {
-                    MessageBox.Show(openFileDialog1.FileName.EndsWith(".rtf").ToString());
-                    if (openFileDialog1.FileName.EndsWith(".rtf"))
-                    {
-                        richTextBox1.LoadFile(openFileDialog1.FileName);
-                        this.Text = openFileDialog1.FileName;
-                    }
-                    else
-                    {
-                        MessageBox.Show("this not rtf file");
-                    }
+
+                    richTextBox1.LoadFile(openFileDialog1.FileName);
+                    this.Text = openFileDialog1.FileName;
+                    richTextBox1.Enabled = true;
+                    needsSaving = false;
+                    ehereWasConservation = false;
+                    characters = richTextBox1.Text.Length;
+
                 }
-                catch(IOException)
+                else
                 {
-                    MessageBox.Show("111");
-                }
-                catch(ArgumentException)
-                {
-                    MessageBox.Show("22");
+                    MessageBox.Show("this not rtf type");
                 }
                 
             }
+            
         }
 
         private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK &&
-      saveFileDialog1.FileName.Length > 0)
-            {
-                // Save the contents of the RichTextBox into the file.
-                richTextBox1.SaveFile(saveFileDialog1.FileName);
-                this.Text = saveFileDialog1.FileName;
-            }
+            saveFileDialog1.ShowDialog();
         }
 
-        private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (richTextBox1.Modified && this.Text.EndsWith(".rtf"))
-            {
-                DialogResult res = MessageBox.Show("Сохранить изменения?", "Файл был изменен", MessageBoxButtons.YesNoCancel);
-                if (res == DialogResult.Yes)
-                {
-                    SaveToolStripMenuItem_Click(this,e);
-                    Application.Exit();
-                }
-                else if(res == DialogResult.No)
-                {
-                    Application.Exit();
-                }
-                else if(res == DialogResult.Cancel)
-                {
-                    
-                }
-                
-            }
-            else
-            {
-                Application.Exit();
-            }
-
-
-            
-
-        }
-
+     
         private void UndoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            richTextBox1.Undo();
+            if(richTextBox1.CanUndo)
+                richTextBox1.Undo();
         }
 
         private void RedoToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            richTextBox1.Redo();
+            if(richTextBox1.CanRedo)
+                richTextBox1.Redo();
         }
 
         private void CutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -248,50 +238,95 @@ namespace RtfRedactor
 
         private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (richTextBox1.Modified && this.Text.EndsWith(".rtf"))
+           
+            if (needsSaving)
             {
-                MessageBox.Show(this.Text);
-                richTextBox1.SaveFile(this.Text);
+                saveFileDialog1.FileName = filePath;
+                saveFileDialog1.ShowDialog();
+            }
+            else
+            {
+                Save(filePath);
+            }
+        }
+
+        
+
+        private void NewToolStripMenuItem_Click_1(object sender, EventArgs e)
+        {
+            
+
+            var newFileDialog = new NewFileForm();
+            if(newFileDialog.ShowDialog()== DialogResult.OK)
+            {
+                filePath = newFileDialog.fileName;
+                richTextBox1.Clear();
+                richTextBox1.Enabled = true;
+                needsSaving = true;
+                ehereWasConservation = false;
+                characters = richTextBox1.Text.Length;
             }
  
+        }
+
+        private void printToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var pDoc = new PrintDocument();
+            pDoc.DocumentName = filePath;
+            pDoc.PrintPage += PrinterHandler;
+            printDialog1.Document = pDoc;
+            if(printDialog1.ShowDialog() == DialogResult.OK)
+            {
+                printDialog1.Document.Print();
+            }
+        }
+
+        private void PrinterHandler(object sendler, PrintPageEventArgs e)
+        {
+            int count = 0;
+            Font printFont = fontDialog1.Font;
+            Brush printBrush = new SolidBrush(colorDialog1.Color);
+
+            foreach(var line in richTextBox1.Lines)
+            {
+                float yPos = e.MarginBounds.Top + (count * printFont.GetHeight(e.Graphics));
+                e.Graphics.DrawString(line, printFont, printBrush,
+                                        e.MarginBounds.Left, yPos, new StringFormat());
+
+                count++;
+            }
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            
-            if (e.CloseReason == CloseReason.UserClosing)
+            if (ehereWasConservation == false & (characters < richTextBox1.Text.Length || richTextBox1.Text.Length < characters))
             {
-                if (richTextBox1.Modified && this.Text.EndsWith(".rtf"))
+                DialogResult res = MessageBox.Show("Сохранить изменения?", "Файл был изменен", MessageBoxButtons.YesNoCancel);
+                if (res == DialogResult.Yes)
                 {
-                    DialogResult res = MessageBox.Show("Сохранить изменения?", "Файл был изменен", MessageBoxButtons.YesNoCancel);
-                    if (res == DialogResult.Yes)
-                    {
-                        SaveToolStripMenuItem_Click(this, e);
-                        Application.Exit();
-                    }
-                    else if (res == DialogResult.No)
-                    {
-                        Application.Exit();
-                    }
-                    else if (res == DialogResult.Cancel)
-                    {
-                        e.Cancel = true;
-                    }
+                    Save(filePath);
+                    
+                }
+                else if (res == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                }
 
-                }
-                else
-                {
-                    Application.Exit();
-                }
             }
-
+            
         }
 
-        private void NewToolStripMenuItem_Click_1(object sender, EventArgs e)
+        private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            richTextBox1.Clear();
-            this.Text = "Form1";
- 
+            Application.Exit();
         }
+
+        private void enlargeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            richTextBox1.Font = new Font(richTextBox1.Text, 34, richTextBox1.Font.Style);
+            
+        }
+
+        
     }
 }
