@@ -321,12 +321,19 @@ namespace RtfRedactor
             Application.Exit();
         }
 
-        private void enlargeToolStripMenuItem_Click(object sender, EventArgs e)
+       
+
+        private void richTextBox1_MouseUp(object sender, MouseEventArgs e)
         {
-            richTextBox1.Font = new Font(richTextBox1.Text, 34, richTextBox1.Font.Style);
-            
+            if(e.Button == MouseButtons.Right)
+            {
+                contextMenuStrip1.Show(MousePosition, ToolStripDropDownDirection.Right);
+            }
         }
 
-        
+        private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            richTextBox1.SelectAll();
+        }
     }
 }
