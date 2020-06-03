@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace RtfRedactor
 {
@@ -18,6 +19,7 @@ namespace RtfRedactor
         bool needsSaving = false;
         bool ehereWasConservation = false;
         int characters = 0;
+        int indexToText = 0;
         public MainForm()
         {
             InitializeComponent();
@@ -334,6 +336,45 @@ namespace RtfRedactor
         private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
             richTextBox1.SelectAll();
+        }
+
+        private void Search_Click(object sender, EventArgs e)
+        {
+            //var s = new SearchForm();
+            //s.Show();
+
+            //search = s.searchText;
+            SearchT(toolStripTextBox1.Text);
+           
+
+
+        }
+
+        private int SearchT(string searchText)
+        {         
+            int returnValue = -1;
+
+            if (indexToText >= richTextBox1.Text.Length)
+            {
+                indexToText = 0;
+            }
+
+            indexToText =  richTextBox1.Find(searchText, indexToText, RichTextBoxFinds.MatchCase);
+            if(indexToText>=0)
+            {
+               
+               indexToText+=toolStripTextBox1.Text.Length;
+            }
+            else
+            {
+                indexToText = 0;
+            }
+           
+
+
+            
+            return returnValue;
+
         }
     }
 }
